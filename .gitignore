@@ -39,3 +39,7 @@
 /localhost.pem
 /localhost-key.pem
 /serve_header.yml
+
+# zig build
+/zig-cache/
+/zig-out/
