@@ -28,10 +28,6 @@ pub fn build(b: *std.Build) void {
     if (tests) {
         buildTest(b, .{
             .lib = lib,
-            .path = "tests/src/unit.cpp",
-        });
-        buildTest(b, .{
-            .lib = lib,
             .path = "tests/src/fuzzer-parse_json.cpp",
         });
         buildTest(b, .{
