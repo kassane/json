@@ -26,7 +26,7 @@ pub fn build(b: *std.Build) void {
     lib.installHeadersDirectory("single_include", "");
 
     if (tests) {
-        buildTest(b, .{
+        if (target.isDarwin()) buildTest(b, .{
             .lib = lib,
             .path = "tests/src/fuzzer-parse_json.cpp",
         });
@@ -55,14 +55,17 @@ fn buildTest(b: *std.Build, info: BuildInfo) void {
         .optimize = info.lib.optimize,
         .target = info.lib.target,
     });
-    test_exe.addIncludePath("include");
-    test_exe.addIncludePath("tests/src/");
-    test_exe.addIncludePath("tests/thirdparty/doctest");
-    test_exe.addIncludePath("tests/thirdparty/Fuzzer");
-    test_exe.addCSourceFile(info.path, cxxFlags);
+    test_exe.addIncludePath(.{ .path = "include" });
+    test_exe.addIncludePath(.{ .path = "tests/src/" });
+    test_exe.addIncludePath(.{ .path = "tests/thirdparty/doctest" });
+    test_exe.addIncludePath(.{ .path = "tests/thirdparty/Fuzzer" });
+    test_exe.addCSourceFile(.{ .file = .{ .path = info.path }, .flags = cxxFlags });
     test_exe.defineCMacro("DOCTEST_CONFIG_SUPER_FAST_ASSERTS", null);
-    test_exe.addCSourceFile("tests/thirdparty/Fuzzer/standalone/StandaloneFuzzTargetMain.c", cxxFlags);
-    test_exe.linkLibCpp();
+    test_exe.addCSourceFile(.{ .file = .{ .path = "tests/thirdparty/Fuzzer/standalone/StandaloneFuzzTargetMain.c" }, .flags = cxxFlags });
+    if (test_exe.target.getAbi() != .msvc)
+        test_exe.linkLibCpp()
+    else
+        test_exe.linkLibC();
     b.installArtifact(test_exe);
 
     const run_cmd = b.addRunArtifact(test_exe);
@@ -81,14 +84,15 @@ fn buildTest(b: *std.Build, info: BuildInfo) void {
 const cxxFlags: []const []const u8 = &.{
     "-Wall",
     "-Wextra",
+    "-Wpedantic",
 };
 
 const BuildInfo = struct {
-    lib: *std.Build.CompileStep,
+    lib: *std.Build.Step.Compile,
     path: []const u8,
 
     fn filename(self: BuildInfo) []const u8 {
-        var split = std.mem.split(u8, std.fs.path.basename(self.path), ".");
+        var split = std.mem.splitSequence(u8, std.fs.path.basename(self.path), ".");
         return split.first();
     }
 };
